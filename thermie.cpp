@@ -7,13 +7,13 @@
 //////////////////////
 // WiFi Definitions //
 //////////////////////
-const char WiFiSSID[] = "your_wifi_ssid_here";
-const char WiFiPSK[] = "your_wifi_pass_here";
+const char WiFiSSID[] = "your_wifi_ssid";
+const char WiFiPSK[] = "your_wifi_passcode";
 
 /////////////////////
 // Pin Definitions //
 /////////////////////
-const int LED_PIN = 5; // Thing's onboard LED
+const int LED_PIN = 5; // Thing's onboard, green LED
 const int ANALOG_PIN = A0; // The only analog pin on the Thing
 const int DIGITAL_PIN = 12; // Digital pin to be read
 
@@ -23,9 +23,10 @@ const int DIGITAL_PIN = 12; // Digital pin to be read
 const char Id[] = "OfficeThermie";
 const char Version[] = "1.0.1";
 const char CloudHost[] = "data.example.com";
-const char PublicKey[] = "your_pub_key_here";
-const char PrivateKey[] = "your_private_key_here";
-int state = 0; // off
+const char PublicKey[] = "your_public_key";
+const char PrivateKey[] = "your_private_key";
+int state = 0; // 0=off 1=on
+int runMode = 0; // 0=heat 1=cool will support cool mode in future
 
 ///////////////////////////////
 // I2C TMP102 sensor related //
@@ -73,8 +74,8 @@ void loop()
         Serial.println("Checking temperature");
         if (tryTriggerTemp())
         {
-        lastPost = millis();
-        //Serial.println("Post Suceeded! temp is lower than setPoint");
+          lastPost = millis();
+          //Serial.println("Post Suceeded!");
         }
     }
 
@@ -95,29 +96,24 @@ void loop()
     client.flush();
 
     // Match the request
-    int val; // flag request type
     if (line.indexOf("/api/setpoint+") != -1){
         Serial.println("[API SETPOINT +]");
-        val = 0;
         setPointF++;
         client.println(apiDataResponse());
     }
     else if (line.indexOf("/api/setpoint-") != -1){
         Serial.println("[API SETPOINT -]");
-        val = 1;
         setPointF--;
         client.println(apiDataResponse());
     }
     else if (line.indexOf("/api/data") != -1){
         Serial.println("[API DATA]");
-        val = 2;
         client.println(apiDataResponse());
     }
     // wait for end of client's request, that is marked with an empty line
     else
     {
         Serial.println("[WEB PAGE REQUEST]");
-        val = 3;
         client.println(prepareHtmlPage());
     }
 
@@ -255,6 +251,7 @@ String compileJsonData()
     "\"source\": \"http://" + WiFi.localIP().toString().c_str() + "\"," +
     "\"version\": \"" + String(Version) + "\"," +
     "\"state\": \"" + String(state) + "\"," +
+    "\"runMode\": \"" + String(runMode) + "\"," +
     "\"tempf\": " + String(fahrenheit) + "," +
     "\"setpointf\": " + String(setPointF) + "" +
     "}";
